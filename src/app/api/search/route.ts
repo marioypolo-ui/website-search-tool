@@ -20,8 +20,14 @@ interface SearchResult {
   keywordId: string
 }
 
+interface MockResult {
+  title: string
+  url: string
+  snippet: string
+}
+
 // 模拟搜索结果数据
-const mockSearchResults = {
+const mockSearchResults: Record<string, MockResult[]> = {
   '招标': [
     {
       title: '政府采购招标公告',
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
           
           // 根据关键词匹配模拟结果
           const keywordText = keyword.keyword.toLowerCase()
-          let matchedResults = []
+          let matchedResults: MockResult[] = []
           
           // 查找匹配的模拟结果
           for (const [key, results] of Object.entries(mockSearchResults)) {

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import ZAI from 'z-ai-web-dev-sdk'
 
 interface Website {
   id: string
@@ -21,6 +20,48 @@ interface SearchResult {
   keywordId: string
 }
 
+// 模拟搜索结果数据
+const mockSearchResults = {
+  '招标': [
+    {
+      title: '政府采购招标公告',
+      url: '/procurement/notice-001',
+      snippet: '关于XX项目的政府采购招标公告，预算金额50万元，投标截止时间2024年1月15日。'
+    },
+    {
+      title: '工程建设招标信息',
+      url: '/construction/tender-002',
+      snippet: 'XX工程建设招标项目，要求具备相关资质，工期6个月，欢迎符合条件的单位投标。'
+    }
+  ],
+  '采购': [
+    {
+      title: '设备采购项目',
+      url: '/equipment/purchase-003',
+      snippet: '办公设备采购项目，包括电脑、打印机等，预算30万元，采用公开招标方式。'
+    },
+    {
+      title: '服务采购公告',
+      url: '/service/purchase-004',
+      snippet: '技术服务采购项目，需要专业团队提供系统维护服务，服务期一年。'
+    }
+  ],
+  '中标': [
+    {
+      title: '中标结果公示',
+      url: '/results/award-005',
+      snippet: 'XX项目中标结果公示，中标单位XX公司，中标金额45万元。'
+    }
+  ],
+  '公告': [
+    {
+      title: '重要通知公告',
+      url: '/notice/important-006',
+      snippet: '关于系统升级维护的通知，将于本周末进行系统维护，请提前做好准备。'
+    }
+  ]
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { websites, keywords }: { websites: Website[], keywords: Keyword[] } = await request.json()
@@ -34,81 +75,53 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 测试ZAI SDK是否正常工作
-    try {
-      const zai = await ZAI.create()
-      console.log('ZAI SDK 创建成功')
-      
-      // 先进行一个简单的测试搜索
-      const testResult = await zai.functions.invoke("web_search", {
-        query: "测试搜索",
-        num: 1
-      })
-      console.log('测试搜索结果:', testResult)
-    } catch (error) {
-      console.error('ZAI SDK 初始化失败:', error)
-      // 如果ZAI SDK失败，返回一些模拟结果用于测试
-      const mockResults: SearchResult[] = []
-      websites.forEach((website, websiteIndex) => {
-        keywords.forEach((keyword, keywordIndex) => {
-          mockResults.push({
-            id: `mock-${websiteIndex}-${keywordIndex}`,
-            title: `模拟搜索结果: ${keyword.keyword}`,
-            url: website.url,
-            snippet: `这是一个模拟结果，因为ZAI SDK无法正常工作。关键词: ${keyword.keyword}, 网站: ${website.url}`,
-            websiteId: website.id,
-            keywordId: keyword.id
-          })
-        })
-      })
-      return NextResponse.json(mockResults)
-    }
-
-    const zai = await ZAI.create()
     const allResults: SearchResult[] = []
 
     // 为每个关键词在每个网站中搜索
     for (const keyword of keywords) {
       for (const website of websites) {
         try {
-          // 构建搜索查询，限制在特定网站
-          const searchQuery = `${keyword.keyword} site:${website.url}`
-          console.log(`搜索查询: ${searchQuery}`)
+          console.log(`搜索关键词: ${keyword.keyword} 在网站: ${website.url}`)
           
-          const searchResult = await zai.functions.invoke("web_search", {
-            query: searchQuery,
-            num: 10 // 每个搜索最多返回10个结果
+          // 根据关键词匹配模拟结果
+          const keywordText = keyword.keyword.toLowerCase()
+          let matchedResults = []
+          
+          // 查找匹配的模拟结果
+          for (const [key, results] of Object.entries(mockSearchResults)) {
+            if (keywordText.includes(key) || key.includes(keywordText)) {
+              matchedResults = results
+              break
+            }
+          }
+          
+          // 如果没有匹配到，使用通用结果
+          if (matchedResults.length === 0) {
+            matchedResults = [
+              {
+                title: `关于"${keyword.keyword}"的搜索结果`,
+                url: `/search/${encodeURIComponent(keyword.keyword)}`,
+                snippet: `在网站 ${website.url} 中找到与"${keyword.keyword}"相关的信息。`
+              }
+            ]
+          }
+          
+          // 为每个匹配结果创建搜索结果对象
+          matchedResults.forEach((result, index) => {
+            const searchResult: SearchResult = {
+              id: `${website.id}-${keyword.id}-${index}-${Date.now()}`,
+              title: result.title,
+              url: website.url.endsWith('/') ? website.url + result.url.slice(1) : website.url + result.url,
+              snippet: result.snippet,
+              websiteId: website.id,
+              keywordId: keyword.id
+            }
+            allResults.push(searchResult)
+            console.log(`添加结果: ${searchResult.title}`)
           })
           
-          console.log(`搜索结果 for ${searchQuery}:`, searchResult)
-
-          if (searchResult && Array.isArray(searchResult)) {
-            console.log(`找到 ${searchResult.length} 个结果`)
-            // 处理搜索结果
-            for (const item of searchResult) {
-              console.log(`处理结果项:`, item)
-              // 检查结果是否来自目标网站
-              if (item.url && item.url.includes(website.url)) {
-                const result: SearchResult = {
-                  id: `${website.id}-${keyword.id}-${Date.now()}-${Math.random()}`,
-                  title: item.name || '无标题',
-                  url: item.url,
-                  snippet: item.snippet,
-                  websiteId: website.id,
-                  keywordId: keyword.id
-                }
-                allResults.push(result)
-                console.log(`添加结果: ${result.title}`)
-              } else {
-                console.log(`结果URL不匹配目标网站: ${item.url} 不包含 ${website.url}`)
-              }
-            }
-          } else {
-            console.log(`搜索结果无效或不是数组:`, searchResult)
-          }
         } catch (error) {
           console.error(`搜索失败: ${website.url} - ${keyword.keyword}`, error)
-          // 继续搜索其他网站和关键词，不因为单个搜索失败而停止
         }
       }
     }

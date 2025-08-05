@@ -30,6 +30,8 @@ interface SearchResult {
   url: string
   snippet: string
   createdAt: Date
+  keyword?: string  // 添加可选的keyword字段
+  website?: string   // 添加可选的website字段
 }
 
 export default function Home() {
@@ -162,7 +164,19 @@ export default function Home() {
 
       if (response.ok) {
         const data = await response.json()
-        setResults(data)
+        
+        // 为每个结果添加关键词和网站信息
+        const enrichedResults = data.map((result: SearchResult) => {
+          const keyword = keywords.find(k => k.id === result.keywordId)
+          const website = websites.find(w => w.id === result.websiteId)
+          return {
+            ...result,
+            keyword: keyword?.keyword || result.keywordId,
+            website: website?.url || result.websiteId
+          }
+        })
+        
+        setResults(enrichedResults)
       }
     } catch (error) {
       console.error('搜索失败:', error)
@@ -341,7 +355,7 @@ export default function Home() {
                             <h3 className="font-semibold text-lg mb-1">{result.title}</h3>
                             <p className="text-sm text-gray-600 mb-2">{result.snippet}</p>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline">{result.keyword}</Badge>
+                              <Badge variant="outline">{result.keyword || result.keywordId}</Badge>
                               <a
                                 href={result.url}
                                 target="_blank"

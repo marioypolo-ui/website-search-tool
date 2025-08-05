@@ -11,11 +11,11 @@ export async function GET() {
       message: 'Database connection successful',
       timestamp: new Date().toISOString()
     })
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ 
       status: 'error', 
       message: 'Database connection failed',
-      error: error.message 
+      error: error?.message || 'Unknown error' 
     }, { status: 500 })
   }
 }

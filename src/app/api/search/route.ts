@@ -28,23 +28,23 @@ export async function POST(request: NextRequest) {
                 data: {
                   websiteId: website,
                   keywordId: keyword,
-                  title: result.name || result.title || '',
-                  url: result.url || '',
-                  snippet: result.snippet || ''
+                  title: (result as any).name || (result as any).title || '',
+                  url: (result as any).url || '',
+                  snippet: (result as any).snippet || ''
                 }
               })
               results.push(savedResult)
             }
           }
-        } catch (error) {
-          console.error(`搜索失败 ${website} - ${keyword}:`, error)
+        } catch (searchError: any) {
+          console.error(`搜索失败 ${website} - ${keyword}:`, searchError?.message || searchError)
         }
       }
     }
 
     return NextResponse.json(results)
-  } catch (error) {
-    console.error('搜索失败:', error)
+  } catch (error: any) {
+    console.error('搜索失败:', error?.message || error)
     return NextResponse.json({ error: 'Failed to perform search' }, { status: 500 })
   }
 }

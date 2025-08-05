@@ -65,6 +65,23 @@ const mockSearchResults: Record<string, MockResult[]> = {
       url: '/notice/important-006',
       snippet: '关于系统升级维护的通知，将于本周末进行系统维护，请提前做好准备。'
     }
+  ],
+  '废标': [
+    {
+      title: '关于XX项目废标公告',
+      url: '/notice/cancellation-001',
+      snippet: '因有效投标人不足三家，根据相关法律法规，本项目作废标处理。'
+    },
+    {
+      title: 'XX工程废标公示',
+      url: '/project/cancellation-002',
+      snippet: '由于投标文件不符合要求，经评标委员会评审，本项目予以废标。'
+    },
+    {
+      title: '废标通知',
+      url: '/notice/cancellation-003',
+      snippet: '关于XX采购项目废标的通知，将重新组织招标活动。'
+    }
   ]
 }
 
@@ -93,16 +110,21 @@ export async function POST(request: NextRequest) {
           const keywordText = keyword.keyword.toLowerCase()
           let matchedResults: MockResult[] = []
           
-          // 查找匹配的模拟结果
+          // 查找匹配的模拟结果 - 更智能的匹配
           for (const [key, results] of Object.entries(mockSearchResults)) {
-            if (keywordText.includes(key) || key.includes(keywordText)) {
+            // 精确匹配或包含匹配
+            if (keywordText === key.toLowerCase() || 
+                keywordText.includes(key.toLowerCase()) || 
+                key.toLowerCase().includes(keywordText)) {
               matchedResults = results
+              console.log(`匹配到关键词: ${key}`)
               break
             }
           }
           
           // 如果没有匹配到，使用通用结果
           if (matchedResults.length === 0) {
+            console.log(`未找到匹配的模拟结果，使用通用结果`)
             matchedResults = [
               {
                 title: `关于"${keyword.keyword}"的搜索结果`,
@@ -123,7 +145,7 @@ export async function POST(request: NextRequest) {
               keywordId: keyword.id
             }
             allResults.push(searchResult)
-            console.log(`添加结果: ${searchResult.title}`)
+            console.log(`添加结果: ${searchResult.title} - URL: ${searchResult.url}`)
           })
           
         } catch (error) {

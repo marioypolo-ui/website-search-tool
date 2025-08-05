@@ -9,7 +9,8 @@ export async function GET() {
       }
     })
     return NextResponse.json(websites)
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to fetch websites:', error?.message || error)
     return NextResponse.json({ error: 'Failed to fetch websites' }, { status: 500 })
   }
 }
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(website)
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to create website:', error?.message || error)
     return NextResponse.json({ error: 'Failed to create website' }, { status: 500 })
   }
 }

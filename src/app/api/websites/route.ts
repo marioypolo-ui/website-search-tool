@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+
+// 模拟数据存储 - 完全独立
+const getMockWebsites = () => [
+  { id: '1', url: 'https://google.com', title: 'Google', createdAt: new Date().toISOString() },
+  { id: '2', url: 'https://github.com', title: 'GitHub', createdAt: new Date().toISOString() }
+]
 
 export async function GET() {
   try {
-    const websites = await db.website.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const websites = getMockWebsites()
     return NextResponse.json(websites)
   } catch (error: any) {
     console.error('Failed to fetch websites:', error?.message || error)
@@ -23,14 +24,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 })
     }
 
-    const website = await db.website.create({
-      data: {
-        url,
-        title: url
-      }
-    })
+    const newWebsite = {
+      id: Date.now().toString(),
+      url,
+      title: url,
+      createdAt: new Date().toISOString()
+    }
 
-    return NextResponse.json(website)
+    return NextResponse.json(newWebsite)
   } catch (error: any) {
     console.error('Failed to create website:', error?.message || error)
     return NextResponse.json({ error: 'Failed to create website' }, { status: 500 })

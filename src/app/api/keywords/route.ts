@@ -9,7 +9,8 @@ export async function GET() {
       }
     })
     return NextResponse.json(keywords)
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to fetch keywords:', error?.message || error)
     return NextResponse.json({ error: 'Failed to fetch keywords' }, { status: 500 })
   }
 }
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(newKeyword)
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to create keyword:', error?.message || error)
     return NextResponse.json({ error: 'Failed to create keyword' }, { status: 500 })
   }
 }

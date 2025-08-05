@@ -6,7 +6,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db.keyword.delete({
+    await db.website.delete({
       where: {
         id: params.id
       }
@@ -14,7 +14,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Failed to delete keyword:', error?.message || error)
-    return NextResponse.json({ error: 'Failed to delete keyword' }, { status: 500 })
+    console.error('Failed to delete website:', error?.message || error)
+    return NextResponse.json({ error: 'Failed to delete website' }, { status: 500 })
   }
 }

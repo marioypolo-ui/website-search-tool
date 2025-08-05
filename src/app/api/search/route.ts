@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import ZAI from 'z-ai-web-dev-sdk'
 
 interface Website {
   id: string
@@ -31,29 +32,51 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 生成模拟搜索结果
-    const results: SearchResult[] = []
+    const zai = await ZAI.create()
+    const allResults: SearchResult[] = []
 
-    websites.forEach((website: Website) => {
-      keywords.forEach((keyword: Keyword) => {
-        // 为每个网站-关键词组合生成1-2个模拟结果
-        const resultCount = Math.floor(Math.random() * 2) + 1
-        
-        for (let i = 0; i < resultCount; i++) {
-          const result: SearchResult = {
-            id: `${website.id}-${keyword.id}-${Date.now()}-${Math.random()}`,
-            title: `关于"${keyword.keyword}"的搜索结果 ${i + 1}`,
-            url: `${website.url}/search-result-${i + 1}`,
-            snippet: `这是一个关于"${keyword.keyword}"的模拟搜索结果，来自网站 ${website.url}。`,
-            websiteId: website.id,
-            keywordId: keyword.id
+    // 为每个关键词在每个网站中搜索
+    for (const keyword of keywords) {
+      for (const website of websites) {
+        try {
+          // 构建搜索查询，限制在特定网站
+          const searchQuery = `${keyword.keyword} site:${website.url}`
+          
+          const searchResult = await zai.functions.invoke("web_search", {
+            query: searchQuery,
+            num: 10 // 每个搜索最多返回10个结果
+          })
+
+          if (searchResult && Array.isArray(searchResult)) {
+            // 处理搜索结果
+            for (const item of searchResult) {
+              // 检查结果是否来自目标网站
+              if (item.url && item.url.includes(website.url)) {
+                const result: SearchResult = {
+                  id: `${website.id}-${keyword.id}-${Date.now()}-${Math.random()}`,
+                  title: item.name || '无标题',
+                  url: item.url,
+                  snippet: item.snippet,
+                  websiteId: website.id,
+                  keywordId: keyword.id
+                }
+                allResults.push(result)
+              }
+            }
           }
-          results.push(result)
+        } catch (error) {
+          console.error(`搜索失败: ${website.url} - ${keyword.keyword}`, error)
+          // 继续搜索其他网站和关键词，不因为单个搜索失败而停止
         }
-      })
-    })
+      }
+    }
 
-    return NextResponse.json(results)
+    // 去重 - 基于URL
+    const uniqueResults = allResults.filter((result, index, self) =>
+      index === self.findIndex(r => r.url === result.url)
+    )
+
+    return NextResponse.json(uniqueResults)
   } catch (error) {
     console.error('搜索API错误:', error)
     return NextResponse.json(

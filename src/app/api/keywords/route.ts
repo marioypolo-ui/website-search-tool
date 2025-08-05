@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+
+// 模拟数据存储 - 完全独立
+const getMockKeywords = () => [
+  { id: '1', keyword: 'JavaScript', createdAt: new Date().toISOString() },
+  { id: '2', keyword: 'React', createdAt: new Date().toISOString() }
+]
 
 export async function GET() {
   try {
-    const keywords = await db.keyword.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const keywords = getMockKeywords()
     return NextResponse.json(keywords)
   } catch (error: any) {
     console.error('Failed to fetch keywords:', error?.message || error)
@@ -23,11 +24,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Keyword is required' }, { status: 400 })
     }
 
-    const newKeyword = await db.keyword.create({
-      data: {
-        keyword
-      }
-    })
+    const newKeyword = {
+      id: Date.now().toString(),
+      keyword,
+      createdAt: new Date().toISOString()
+    }
 
     return NextResponse.json(newKeyword)
   } catch (error: any) {

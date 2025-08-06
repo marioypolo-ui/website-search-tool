@@ -87,13 +87,21 @@ const mockSearchResults: Record<string, MockResult[]> = {
 
 export async function POST(request: NextRequest) {
   try {
+    // 添加更详细的调试信息
+    const requestBody = await request.text()
+    console.log('原始请求体:', requestBody)
+    
     const { websites, keywords }: { websites: Website[], keywords: Keyword[] } = await request.json()
 
-    console.log('搜索请求参数:', { websites, keywords })
+    console.log('解析后的搜索请求参数:', { 
+      websites: websites ? `数量: ${websites.length}, 内容: ${JSON.stringify(websites)}` : 'undefined',
+      keywords: keywords ? `数量: ${keywords.length}, 内容: ${JSON.stringify(keywords)}` : 'undefined'
+    })
 
     if (!websites || !keywords || websites.length === 0 || keywords.length === 0) {
+      console.log('参数验证失败: websites或keywords为空')
       return NextResponse.json(
-        { error: '请提供网站和关键词' },
+        { error: '请提供网站和关键词', debug: { websites, keywords } },
         { status: 400 }
       )
     }
@@ -102,29 +110,34 @@ export async function POST(request: NextRequest) {
 
     // 为每个关键词在每个网站中搜索
     for (const keyword of keywords) {
+      console.log(`处理关键词: ${keyword.keyword} (ID: ${keyword.id})`)
       for (const website of websites) {
+        console.log(`处理网站: ${website.url} (ID: ${website.id})`)
+        
         try {
-          console.log(`搜索关键词: ${keyword.keyword} 在网站: ${website.url}`)
-          
           // 根据关键词匹配模拟结果
           const keywordText = keyword.keyword.toLowerCase()
+          console.log(`关键词小写: ${keywordText}`)
+          
           let matchedResults: MockResult[] = []
           
           // 查找匹配的模拟结果 - 更智能的匹配
+          console.log('开始匹配关键词...')
           for (const [key, results] of Object.entries(mockSearchResults)) {
+            console.log(`检查匹配: "${keywordText}" vs "${key.toLowerCase()}"`)
             // 精确匹配或包含匹配
             if (keywordText === key.toLowerCase() || 
                 keywordText.includes(key.toLowerCase()) || 
                 key.toLowerCase().includes(keywordText)) {
               matchedResults = results
-              console.log(`匹配到关键词: ${key}`)
+              console.log(`✅ 匹配成功! 关键词: ${key}, 结果数量: ${results.length}`)
               break
             }
           }
           
           // 如果没有匹配到，使用通用结果
           if (matchedResults.length === 0) {
-            console.log(`未找到匹配的模拟结果，使用通用结果`)
+            console.log('❌ 未找到匹配的模拟结果，使用通用结果')
             matchedResults = [
               {
                 title: `关于"${keyword.keyword}"的搜索结果`,
@@ -145,29 +158,46 @@ export async function POST(request: NextRequest) {
               keywordId: keyword.id
             }
             allResults.push(searchResult)
-            console.log(`添加结果: ${searchResult.title} - URL: ${searchResult.url}`)
+            console.log(`✅ 添加结果: ${searchResult.title}`)
+            console.log(`   URL: ${searchResult.url}`)
           })
           
         } catch (error) {
-          console.error(`搜索失败: ${website.url} - ${keyword.keyword}`, error)
+          console.error(`❌ 搜索失败: ${website.url} - ${keyword.keyword}`, error)
         }
       }
     }
 
-    console.log(`总共找到 ${allResults.length} 个结果`)
+    console.log(`🎯 总共找到 ${allResults.length} 个结果`)
+    console.log('所有结果:', JSON.stringify(allResults, null, 2))
 
     // 去重 - 基于URL
     const uniqueResults = allResults.filter((result, index, self) =>
       index === self.findIndex(r => r.url === result.url)
     )
 
-    console.log(`去重后剩下 ${uniqueResults.length} 个结果`)
+    console.log(`🔄 去重后剩下 ${uniqueResults.length} 个结果`)
 
-    return NextResponse.json(uniqueResults)
+    // 返回结果和调试信息
+    const response = {
+      results: uniqueResults,
+      debug: {
+        requestWebsites: websites,
+        requestKeywords: keywords,
+        totalResultsBeforeDedupe: allResults.length,
+        totalResultsAfterDedupe: uniqueResults.length,
+        timestamp: new Date().toISOString()
+      }
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('搜索API错误:', error)
+    console.error('❌ 搜索API错误:', error)
     return NextResponse.json(
-      { error: '搜索失败，请稍后重试' },
+      { 
+        error: '搜索失败，请稍后重试',
+        debug: { errorMessage: error.message, stack: error.stack }
+      },
       { status: 500 }
     )
   }
